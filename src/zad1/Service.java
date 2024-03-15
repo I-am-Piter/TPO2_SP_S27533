@@ -6,6 +6,9 @@
 
 package zad1;
 
+import netscape.javascript.JSObject;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -63,14 +66,13 @@ public class Service {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
         Pattern latLon = Pattern.compile("\"lat\":(\\d+.\\d{7}),\"lon\":((\\d+.\\d{7}))");
         Matcher matcher = latLon.matcher(info);
         System.out.println(matcher.find());
         matcher.group();
         lat = matcher.group(1);
         lon = matcher.group(2);
-
+        JSONObject
 
 
 
