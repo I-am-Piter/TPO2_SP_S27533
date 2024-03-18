@@ -30,17 +30,28 @@ public class Service {
     private Locale country;
 
     public Service(String countryName) {
-        this.countryName = countryName.toLowerCase();
-        country = new Locale("",countryName);
-        this.countryCode = country.getCountry();
-        System.out.println(countryCode);
+        this.countryName = countryName;
+        country = new Locale("",getCountryCode(countryName));
+         this.countryCode = country.getCountry();
+    }
+    public static String getCountryCode(String countryName) {
+        String[] countryCodes = Locale.getISOCountries();
+        Locale tmp = Locale.getDefault();
+        Locale.setDefault(Locale.ENGLISH);
+        for (String countryCode : countryCodes) {
+            Locale locale = new Locale("", countryCode);
+            if (countryName.equalsIgnoreCase(locale.getDisplayCountry())) {
+                return countryCode;
+            }
+        }
+        Locale.setDefault(tmp);
+        return Locale.getDefault().getCountry(); //w przypadku nieznalezienia kraju (mało prawdopodobne)
     }
 
     public String getWeather(String city) {
-        String lat = null;
-        String lon = null;
         String apiKey = "6ae983073ffef0266227e60865d98dd7";
-        String url = "http://api.openweathermap.org/geo/1.0/direct?q="+city+","+country.getCountry()+"&appid="+apiKey;
+        String url = "https://api.openweathermap.org/data/2.5/weather?q="+city+","+countryCode+"&appid="+apiKey;
+
         StringBuilder info = new StringBuilder();
         try {
             URL url1 = new URL(url);
@@ -62,29 +73,21 @@ public class Service {
 
                 scanner.close();
 
-                System.out.println(info);
             }
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        JSONObject jobj = null;
-        try {
-            jobj = new JSONObject(info.toString().replaceAll("[\\[\\]]",""));
-        } catch (JSONException e) {
-            throw new RuntimeException(e);
-        }
-        try {
-            lat = jobj.get("lat").toString();
-            lon = jobj.get("lon").toString();
-        } catch (JSONException e) {
-            throw new RuntimeException(e);
-        }
 
-        url = "https://api.openweathermap.org/data/2.5/weather?lat="+lat+"&lon="+lon+"&appid="+apiKey;
+        return info.toString();
+    }
 
-        info.delete(0,info.length());
+    public Double getRateFor(String currency) {
+        NumberFormat currencyCode = NumberFormat.getCurrencyInstance(country);
+        String url = "https://api.currencyapi.com/v3/latest?apikey=cur_live_9wH1PCm7aM57EAzJzMKlbQoD68UOk7fE7Ald4qnV&currencies="+currency+"&base_currency="+currencyCode.getCurrency();
+
+        StringBuilder info = new StringBuilder();
         try {
             URL url1 = new URL(url);
             HttpURLConnection conn = (HttpURLConnection) url1.openConnection();
@@ -105,7 +108,6 @@ public class Service {
 
                 scanner.close();
 
-                System.out.println(info);
             }
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
@@ -113,25 +115,72 @@ public class Service {
             throw new RuntimeException(e);
         }
 
+
+        double toReturn = 0;
+        JSONObject json = null;
         try {
-            JSONObject pogoda = new JSONObject(info.toString());
-            pogoda = new JSONObject(pogoda.get("weather").toString().replaceAll("[\\[\\]]",""));
-            System.out.println(pogoda.get("main"));
+            json = new JSONObject(info.toString());
+            toReturn = (double) json.getJSONObject("data").getJSONObject(currency).get("value");
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
 
-        return info.toString();
-    }
-
-    public Double getRateFor(String currency) {
-        NumberFormat currencyCode = NumberFormat.getCurrencyInstance(country);
-        System.out.println(currencyCode.getCurrency());
-        String url = "https://api.currencyapi.com/v3/latest?apikey=cur_live_9wH1PCm7aM57EAzJzMKlbQoD68UOk7fE7Ald4qnV&currencies=EUR&base_currency=PLN";
-        return null;
+        return toReturn;
     }
 
     public Double getNBPRate() {
-        return null;
+        if (countryCode == "PL"){
+            return 1.0;
+        }
+
+        NumberFormat currencyCode = NumberFormat.getCurrencyInstance(country);
+        String[] urls = {"http://api.nbp.pl/api/exchangerates/rates/a/"+currencyCode.getCurrency().toString().toLowerCase()+"/",
+                "http://api.nbp.pl/api/exchangerates/rates/b/"+currencyCode.getCurrency().toString().toLowerCase()+"/",
+                "http://api.nbp.pl/api/exchangerates/rates/c/"+currencyCode.getCurrency().toString().toLowerCase()+"/"};
+
+        StringBuilder info = new StringBuilder();
+        for (String url:urls) {
+            try {
+                URL url1 = new URL(url);
+                HttpURLConnection conn = (HttpURLConnection) url1.openConnection();
+                conn.setRequestMethod("GET");
+                conn.connect();
+
+                int response = conn.getResponseCode();
+
+                if (response != 200) {
+                    System.out.println("nie działa");
+                } else {
+                    info = new StringBuilder();
+                    Scanner scanner = new Scanner(url1.openStream());
+
+                    while (scanner.hasNext()) {
+                        info.append(scanner.nextLine());
+                    }
+
+                    scanner.close();
+
+                }
+            } catch (MalformedURLException e) {
+                throw new RuntimeException(e);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            if (!info.isEmpty()) {
+                break;
+            }
+        }
+
+        double toReturn = 0;
+        JSONObject json = null;
+        try {
+            json = new JSONObject(info.toString());
+            toReturn = json.getJSONArray("rates").getJSONObject(0).getDouble("mid");
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        return toReturn;
     }
 }
