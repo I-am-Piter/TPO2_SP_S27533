@@ -50,7 +50,7 @@ public class Service {
 
     public String getWeather(String city) {
         String apiKey = "6ae983073ffef0266227e60865d98dd7";
-        String url = "https://api.openweathermap.org/data/2.5/weather?q="+city+","+countryCode+"&appid="+apiKey;
+        String url = "https://api.openweathermap.org/data/2.5/weather?q="+city+","+countryCode+"&appid="+apiKey+"&units=metric";
 
         StringBuilder info = new StringBuilder();
         try {
@@ -116,16 +116,16 @@ public class Service {
         }
 
 
-        double toReturn = 0;
+        String toReturn = "";
         JSONObject json = null;
         try {
             json = new JSONObject(info.toString());
-            toReturn = (double) json.getJSONObject("data").getJSONObject(currency).get("value");
+            toReturn = json.getJSONObject("data").getJSONObject(currency).get("value").toString();
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
 
-        return toReturn;
+        return Double.parseDouble(toReturn);
     }
 
     public Double getNBPRate() {
