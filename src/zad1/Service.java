@@ -49,7 +49,7 @@ public class Service {
     }
 
     public String getWeather(String city) {
-        String apiKey = "6ae983073ffef0266227e60865d98dd7";
+        String apiKey = "";
         String url = "https://api.openweathermap.org/data/2.5/weather?q="+city+","+countryCode+"&appid="+apiKey+"&units=metric";
 
         StringBuilder info = new StringBuilder();
